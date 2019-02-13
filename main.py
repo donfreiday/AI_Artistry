@@ -8,14 +8,20 @@ from keras.applications.vgg16 import preprocess_input
 from keras.layers import Input
 from scipy.optimize import fmin_l_bfgs_b
 import time
+import sys
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Specify paths for 1) content image 2) style image and 3) generated image
+## Command line arguments provide paths for: 
+## 1) content image 2) style image and 3) generated image
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
-cImPath = ''
-sImPath = ''
-genImOutputPath = ''
+if (len(sys.argv) < 4):
+    print("Usage: main.py <content image> <style image> <iterations>")
+    quit()
+cImPath = str(sys.argv[1])
+sImPath = str(sys.argv[2])
+iterations = int(sys.argv[3])
+## genImOutputPath = str(sys.argv[1]) + ".output.jpg"
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ## Image processing
@@ -119,11 +125,17 @@ def reprocess_array(x):
     x = preprocess_input(x)
     return x
 
-def save_original_size(x, target_size=cImageSizeOrig):
+def save_original_size(x, outputPath, target_size=cImageSizeOrig):
     xIm = Image.fromarray(x)
     xIm = xIm.resize(target_size)
-    xIm.save(genImOutputPath)
+    xIm.save(outputPath)
     return xIm
+
+def saveIteration(xk):
+      xOut = postprocess_array(xk)
+      genImOutputPath = cImPath + "-iteration-" + time.strftime('%m.%d.%.y-%H.%M.%S') + ".jpg"
+      save_original_size(x=xOut, outputPath = genImOutputPath)
+      print('Image saved: ' + genImOutputPath)
 
 tf_session = K.get_session()
 cModel = VGG16(include_top=False, weights='imagenet', input_tensor=cImArr)
@@ -142,13 +154,14 @@ P = get_feature_reps(x=cImArr, layer_names=[cLayerName], model=cModel)[0]
 As = get_feature_reps(x=sImArr, layer_names=sLayerNames, model=sModel)
 ws = np.ones(len(sLayerNames))/float(len(sLayerNames))
 
-iterations = 600
 x_val = gIm0.flatten()
 start = time.time()
-xopt, f_val, info= fmin_l_bfgs_b(calculate_loss, x_val, fprime=get_grad,
-                            maxiter=iterations, disp=True)
-xOut = postprocess_array(xopt)
-xIm = save_original_size(xOut)
-print 'Image saved'
+xopt, f_val, info = fmin_l_bfgs_b(calculate_loss, x_val, fprime=get_grad,
+                            maxiter=iterations, disp=True, callback=saveIteration)
+##for i, xopt in enumerate(allvecs):
+##    xOut = postprocess_array(xopt)
+##    genImOutputPath = cImPath + "-iteration-" + i + ".jpg"
+##    xIm = save_original_size(xOut)
+##    print ('Image saved')
 end = time.time()
-print 'Time taken: {}'.format(end-start)
+print ('Time taken: {}'.format(end-start))
