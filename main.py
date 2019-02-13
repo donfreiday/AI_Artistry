@@ -133,7 +133,7 @@ def save_original_size(x, outputPath, target_size=cImageSizeOrig):
 
 def saveIteration(xk):
       xOut = postprocess_array(xk)
-      genImOutputPath = cImPath + "-iteration-" + time.strftime('%m.%d.%.y-%H.%M.%S') + ".jpg"
+      genImOutputPath = cImPath + "-iteration-" + time.strftime('%m.%d.%y-%H.%M.%S') + ".jpg"
       save_original_size(x=xOut, outputPath = genImOutputPath)
       print('Image saved: ' + genImOutputPath)
 
